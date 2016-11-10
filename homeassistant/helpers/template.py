@@ -1,5 +1,4 @@
 """Template helper methods for rendering strings with HA data."""
-# pylint: disable=too-few-public-methods
 import json
 import logging
 import re
@@ -387,6 +386,13 @@ def timestamp_utc(value):
         return value
 
 
+def fail_when_undefined(value):
+    """Filter to force a failure when the value is undefined."""
+    if isinstance(value, jinja2.Undefined):
+        value()
+    return value
+
+
 def forgiving_float(value):
     """Try to convert value to a float."""
     try:
@@ -408,6 +414,7 @@ ENV.filters['multiply'] = multiply
 ENV.filters['timestamp_custom'] = timestamp_custom
 ENV.filters['timestamp_local'] = timestamp_local
 ENV.filters['timestamp_utc'] = timestamp_utc
+ENV.filters['is_defined'] = fail_when_undefined
 ENV.globals['float'] = forgiving_float
 ENV.globals['now'] = dt_util.now
 ENV.globals['utcnow'] = dt_util.utcnow

@@ -1,6 +1,7 @@
 """An abstract class for entities."""
 import asyncio
 import logging
+from timeit import default_timer as timer
 
 from typing import Any, Optional, List, Dict
 
@@ -12,7 +13,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import NoEntitySpecifiedError
 from homeassistant.util import ensure_unique_string, slugify
-from homeassistant.util.async import run_coroutine_threadsafe
+from homeassistant.util.async import (
+    run_coroutine_threadsafe, run_callback_threadsafe)
 
 # Entity attributes that we will overwrite
 _OVERWRITE = {}  # type: Dict[str, Any]
@@ -27,15 +29,27 @@ def generate_entity_id(entity_id_format: str, name: Optional[str],
     if current_ids is None:
         if hass is None:
             raise ValueError("Missing required parameter currentids or hass")
+        else:
+            return run_callback_threadsafe(
+                hass.loop, async_generate_entity_id, entity_id_format, name,
+                current_ids, hass
+            ).result()
 
-        current_ids = hass.states.entity_ids()
+    name = (name or DEVICE_DEFAULT_NAME).lower()
 
-    return async_generate_entity_id(entity_id_format, name, current_ids)
+    return ensure_unique_string(
+        entity_id_format.format(slugify(name)), current_ids)
 
 
 def async_generate_entity_id(entity_id_format: str, name: Optional[str],
-                             current_ids: Optional[List[str]]=None) -> str:
+                             current_ids: Optional[List[str]]=None,
+                             hass: Optional[HomeAssistant]=None) -> str:
     """Generate a unique entity ID based on given entity IDs or used IDs."""
+    if current_ids is None:
+        if hass is None:
+            raise ValueError("Missing required parameter currentids or hass")
+
+        current_ids = hass.states.async_entity_ids()
     name = (name or DEVICE_DEFAULT_NAME).lower()
 
     return ensure_unique_string(
@@ -43,7 +57,10 @@ def async_generate_entity_id(entity_id_format: str, name: Optional[str],
 
 
 def set_customize(customize: Dict[str, Any]) -> None:
-    """Overwrite all current customize settings."""
+    """Overwrite all current customize settings.
+
+    Async friendly.
+    """
     global _OVERWRITE
 
     _OVERWRITE = {key.lower(): val for key, val in customize.items()}
@@ -194,7 +211,15 @@ class Entity(object):
                 #     future support?
                 yield from self.hass.loop.run_in_executor(None, self.update)
 
-        state = STATE_UNKNOWN if self.state is None else str(self.state)
+        start = timer()
+
+        state = self.state
+
+        if state is None:
+            state = STATE_UNKNOWN
+        else:
+            state = str(state)
+
         attr = self.state_attributes or {}
 
         device_attr = self.device_state_attributes
@@ -214,6 +239,14 @@ class Entity(object):
         self._attr_setter('entity_picture', str, ATTR_ENTITY_PICTURE, attr)
         self._attr_setter('hidden', bool, ATTR_HIDDEN, attr)
         self._attr_setter('assumed_state', bool, ATTR_ASSUMED_STATE, attr)
+
+        end = timer()
+
+        if end - start > 0.4:
+            _LOGGER.warning('Updating state for %s took %.3f seconds. '
+                            'Please report platform to the developers at '
+                            'https://goo.gl/Nvioub', self.entity_id,
+                            end - start)
 
         # Overwrite properties that have been set in the config file.
         attr.update(_OVERWRITE.get(self.entity_id, {}))
@@ -238,7 +271,17 @@ class Entity(object):
 
     def remove(self) -> None:
         """Remove entitiy from HASS."""
-        self.hass.states.remove(self.entity_id)
+        run_coroutine_threadsafe(
+            self.async_remove(), self.hass.loop
+        ).result()
+
+    @asyncio.coroutine
+    def async_remove(self) -> None:
+        """Remove entitiy from async HASS.
+
+        This method must be run in the event loop.
+        """
+        self.hass.states.async_remove(self.entity_id)
 
     def _attr_setter(self, name, typ, attr, attrs):
         """Helper method to populate attributes based on properties."""
@@ -281,15 +324,35 @@ class ToggleEntity(Entity):
 
     def turn_on(self, **kwargs) -> None:
         """Turn the entity on."""
+        run_coroutine_threadsafe(self.async_turn_on(**kwargs),
+                                 self.hass.loop).result()
+
+    @asyncio.coroutine
+    def async_turn_on(self, **kwargs):
+        """Turn the entity on."""
         raise NotImplementedError()
 
     def turn_off(self, **kwargs) -> None:
         """Turn the entity off."""
+        run_coroutine_threadsafe(self.async_turn_off(**kwargs),
+                                 self.hass.loop).result()
+
+    @asyncio.coroutine
+    def async_turn_off(self, **kwargs):
+        """Turn the entity off."""
         raise NotImplementedError()
 
-    def toggle(self, **kwargs) -> None:
-        """Toggle the entity off."""
+    def toggle(self) -> None:
+        """Toggle the entity."""
         if self.is_on:
-            self.turn_off(**kwargs)
+            self.turn_off()
         else:
-            self.turn_on(**kwargs)
+            self.turn_on()
+
+    @asyncio.coroutine
+    def async_toggle(self):
+        """Toggle the entity."""
+        if self.is_on:
+            yield from self.async_turn_off()
+        else:
+            yield from self.async_turn_on()

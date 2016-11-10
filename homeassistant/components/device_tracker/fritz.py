@@ -38,7 +38,6 @@ def get_scanner(hass, config):
     return scanner if scanner.success_init else None
 
 
-# pylint: disable=too-many-instance-attributes
 class FritzBoxScanner(object):
     """This class queries a FRITZ!Box router."""
 
@@ -79,7 +78,7 @@ class FritzBoxScanner(object):
         self._update_info()
         active_hosts = []
         for known_host in self.last_results:
-            if known_host['status'] == '1':
+            if known_host['status'] == '1' and known_host.get('mac'):
                 active_hosts.append(known_host['mac'])
         return active_hosts
 

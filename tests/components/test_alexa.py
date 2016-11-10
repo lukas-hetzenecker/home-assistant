@@ -1,12 +1,12 @@
 """The tests for the Alexa component."""
-# pylint: disable=protected-access,too-many-public-methods
+# pylint: disable=protected-access
 import json
-import time
 import datetime
 import unittest
 
 import requests
 
+from homeassistant.core import callback
 from homeassistant import bootstrap, const
 from homeassistant.components import alexa, http
 
@@ -36,7 +36,8 @@ NPR_NEWS_MP3_URL = "https://pd.npr.org/anon.npr-mp3/npr/news/newscast.mp3"
 STATIC_TIME = datetime.datetime.utcfromtimestamp(1476129102)
 
 
-def setUpModule():   # pylint: disable=invalid-name
+# pylint: disable=invalid-name
+def setUpModule():
     """Initialize a Home Assistant server for testing this module."""
     global hass
 
@@ -47,7 +48,11 @@ def setUpModule():   # pylint: disable=invalid-name
         {http.DOMAIN: {http.CONF_API_PASSWORD: API_PASSWORD,
                        http.CONF_SERVER_PORT: SERVER_PORT}})
 
-    hass.services.register("test", "alexa", lambda call: calls.append(call))
+    @callback
+    def mock_service(call):
+        calls.append(call)
+
+    hass.services.register("test", "alexa", mock_service)
 
     bootstrap.setup_component(hass, alexa.DOMAIN, {
         # Key is here to verify we allow other keys in config too
@@ -114,10 +119,10 @@ def setUpModule():   # pylint: disable=invalid-name
     })
 
     hass.start()
-    time.sleep(0.05)
 
 
-def tearDownModule():   # pylint: disable=invalid-name
+# pylint: disable=invalid-name
+def tearDownModule():
     """Stop the Home Assistant server."""
     hass.stop()
 

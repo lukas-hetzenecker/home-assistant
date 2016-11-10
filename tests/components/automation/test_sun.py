@@ -3,7 +3,8 @@ from datetime import datetime
 import unittest
 from unittest.mock import patch
 
-from homeassistant.bootstrap import _setup_component
+from homeassistant.core import callback
+from homeassistant.bootstrap import setup_component
 from homeassistant.components import sun
 import homeassistant.components.automation as automation
 import homeassistant.util.dt as dt_util
@@ -22,6 +23,7 @@ class TestAutomationSun(unittest.TestCase):
 
         self.calls = []
 
+        @callback
         def record_call(service):
             self.calls.append(service)
 
@@ -42,7 +44,7 @@ class TestAutomationSun(unittest.TestCase):
 
         with patch('homeassistant.util.dt.utcnow',
                    return_value=now):
-            _setup_component(self.hass, automation.DOMAIN, {
+            setup_component(self.hass, automation.DOMAIN, {
                 automation.DOMAIN: {
                     'trigger': {
                         'platform': 'sun',
@@ -81,7 +83,7 @@ class TestAutomationSun(unittest.TestCase):
 
         with patch('homeassistant.util.dt.utcnow',
                    return_value=now):
-            _setup_component(self.hass, automation.DOMAIN, {
+            setup_component(self.hass, automation.DOMAIN, {
                 automation.DOMAIN: {
                     'trigger': {
                         'platform': 'sun',
@@ -108,7 +110,7 @@ class TestAutomationSun(unittest.TestCase):
 
         with patch('homeassistant.util.dt.utcnow',
                    return_value=now):
-            _setup_component(self.hass, automation.DOMAIN, {
+            setup_component(self.hass, automation.DOMAIN, {
                 automation.DOMAIN: {
                     'trigger': {
                         'platform': 'sun',
@@ -142,7 +144,7 @@ class TestAutomationSun(unittest.TestCase):
 
         with patch('homeassistant.util.dt.utcnow',
                    return_value=now):
-            _setup_component(self.hass, automation.DOMAIN, {
+            setup_component(self.hass, automation.DOMAIN, {
                 automation.DOMAIN: {
                     'trigger': {
                         'platform': 'sun',
@@ -165,7 +167,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_RISING: '2015-09-16T14:00:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',
@@ -201,7 +203,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_RISING: '2015-09-16T14:00:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',
@@ -237,7 +239,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_RISING: '2015-09-16T14:00:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',
@@ -274,7 +276,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_RISING: '2015-09-16T14:00:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',
@@ -312,7 +314,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_SETTING: '2015-09-16T15:00:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',
@@ -358,7 +360,7 @@ class TestAutomationSun(unittest.TestCase):
             sun.STATE_ATTR_NEXT_SETTING: '2015-09-16T17:30:00Z',
         })
 
-        _setup_component(self.hass, automation.DOMAIN, {
+        setup_component(self.hass, automation.DOMAIN, {
             automation.DOMAIN: {
                 'trigger': {
                     'platform': 'event',

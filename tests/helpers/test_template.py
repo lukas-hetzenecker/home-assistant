@@ -1,5 +1,4 @@
 """Test Home Assistant template helper methods."""
-# pylint: disable=too-many-public-methods
 import unittest
 from unittest.mock import patch
 
@@ -22,14 +21,16 @@ from tests.common import get_test_home_assistant
 class TestHelpersTemplate(unittest.TestCase):
     """Test the Template."""
 
-    def setUp(self):  # pylint: disable=invalid-name
+    # pylint: disable=invalid-name
+    def setUp(self):
         """Setup the tests."""
         self.hass = get_test_home_assistant()
         self.hass.config.units = UnitSystem('custom', TEMP_CELSIUS,
                                             LENGTH_METERS, VOLUME_LITERS,
                                             MASS_GRAMS)
 
-    def tearDown(self):  # pylint: disable=invalid-name
+    # pylint: disable=invalid-name
+    def tearDown(self):
         """Stop down stuff we started."""
         self.hass.stop()
 
@@ -205,6 +206,34 @@ class TestHelpersTemplate(unittest.TestCase):
         self.assertEqual(
             '-',
             tpl.render_with_possible_json_value('hello', '-'))
+
+    def test_render_with_possible_json_value_with_missing_json_value(self):
+        """Render with possible JSON value with unknown JSON object."""
+        tpl = template.Template('{{ value_json.goodbye }}', self.hass)
+        self.assertEqual(
+            '',
+            tpl.render_with_possible_json_value('{"hello": "world"}'))
+
+    def test_render_with_possible_json_value_valid_with_is_defined(self):
+        """Render with possible JSON value with known JSON object."""
+        tpl = template.Template('{{ value_json.hello|is_defined }}', self.hass)
+        self.assertEqual(
+            'world',
+            tpl.render_with_possible_json_value('{"hello": "world"}'))
+
+    def test_render_with_possible_json_value_undefined_json(self):
+        """Render with possible JSON value with unknown JSON object."""
+        tpl = template.Template('{{ value_json.bye|is_defined }}', self.hass)
+        self.assertEqual(
+            '{"hello": "world"}',
+            tpl.render_with_possible_json_value('{"hello": "world"}'))
+
+    def test_render_with_possible_json_value_undefined_json_error_value(self):
+        """Render with possible JSON value with unknown JSON object."""
+        tpl = template.Template('{{ value_json.bye|is_defined }}', self.hass)
+        self.assertEqual(
+            '',
+            tpl.render_with_possible_json_value('{"hello": "world"}', ''))
 
     def test_raise_exception_on_error(self):
         """Test raising an exception on error."""
@@ -402,7 +431,8 @@ class TestHelpersTemplate(unittest.TestCase):
             'longitude': self.hass.config.longitude,
         })
 
-        group.Group(self.hass, 'location group', ['test_domain.object'])
+        group.Group.create_group(
+            self.hass, 'location group', ['test_domain.object'])
 
         self.assertEqual(
             'test_domain.object',
@@ -422,7 +452,8 @@ class TestHelpersTemplate(unittest.TestCase):
             'longitude': self.hass.config.longitude,
         })
 
-        group.Group(self.hass, 'location group', ['test_domain.object'])
+        group.Group.create_group(
+            self.hass, 'location group', ['test_domain.object'])
 
         self.assertEqual(
             'test_domain.object',

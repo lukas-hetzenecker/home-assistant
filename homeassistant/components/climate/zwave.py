@@ -38,6 +38,7 @@ DEVICE_MAPPINGS = {
 
 SET_TEMP_TO_INDEX = {
     'Heat': 1,
+    'Comfort': 1,
     'Cool': 2,
     'Auto': 3,
     'Aux Heat': 4,
@@ -48,9 +49,11 @@ SET_TEMP_TO_INDEX = {
     'Moist Air': 9,
     'Auto Changeover': 10,
     'Heat Econ': 11,
+    'Energy Saving': 11,
     'Cool Econ': 12,
     'Away': 13,
-    'Unknown': 14
+    'Unknown': 14,
+    'Direct Valve Control': 31
 }
 
 
@@ -69,11 +72,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                   discovery_info, zwave.NETWORK)
 
 
-# pylint: disable=abstract-method
 class ZWaveClimate(ZWaveDeviceEntity, ClimateDevice):
     """Represents a ZWave Climate device."""
 
-    # pylint: disable=too-many-instance-attributes
     def __init__(self, value, temp_unit):
         """Initialize the zwave climate device."""
         from openzwave.network import ZWaveNetwork
@@ -84,6 +85,7 @@ class ZWaveClimate(ZWaveDeviceEntity, ClimateDevice):
         self._current_temperature = None
         self._current_operation = None
         self._operation_list = None
+        self._operating_state = None
         self._current_fan_mode = None
         self._fan_list = None
         self._current_swing_mode = None
@@ -182,6 +184,11 @@ class ZWaveClimate(ZWaveDeviceEntity, ClimateDevice):
             _LOGGER.debug("Device can't set setpoint based on operation mode."
                           " Defaulting to index=1")
             self._target_temperature = int(value.data)
+        # Operating state
+        for value in (self._node.get_values(
+                class_id=zwave.const.COMMAND_CLASS_THERMOSTAT_OPERATING_STATE)
+                      .values()):
+            self._operating_state = value.data
 
     @property
     def should_poll(self):
@@ -323,3 +330,13 @@ class ZWaveClimate(ZWaveDeviceEntity, ClimateDevice):
                    value.index == 33:
                     value.data = bytes(swing_mode, 'utf-8')
                     break
+
+    @property
+    def device_state_attributes(self):
+        """Return the device specific state attributes."""
+        if self._operating_state:
+            return {
+                "operating_state": self._operating_state,
+            }
+        else:
+            return {}

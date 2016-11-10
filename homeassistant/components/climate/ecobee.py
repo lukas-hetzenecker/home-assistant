@@ -14,7 +14,7 @@ from homeassistant.components.climate import (
     DOMAIN, STATE_COOL, STATE_HEAT, STATE_IDLE, ClimateDevice,
     ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH)
 from homeassistant.const import (
-    ATTR_ENTITY_ID, STATE_OFF, STATE_ON, TEMP_FAHRENHEIT, TEMP_CELSIUS)
+    ATTR_ENTITY_ID, STATE_OFF, STATE_ON, TEMP_FAHRENHEIT)
 from homeassistant.config import load_yaml_config_file
 import homeassistant.helpers.config_validation as cv
 
@@ -72,7 +72,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         schema=SET_FAN_MIN_ON_TIME_SCHEMA)
 
 
-# pylint: disable=too-many-public-methods, abstract-method
 class Thermostat(ClimateDevice):
     """A thermostat class for Ecobee."""
 
@@ -107,10 +106,7 @@ class Thermostat(ClimateDevice):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        if self.thermostat['settings']['useCelsius']:
-            return TEMP_CELSIUS
-        else:
-            return TEMP_FAHRENHEIT
+        return TEMP_FAHRENHEIT
 
     @property
     def current_temperature(self):

@@ -15,7 +15,7 @@ from homeassistant.const import CONF_ACCESS_TOKEN, ATTR_BATTERY_LEVEL, \
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
 
-REQUIREMENTS = ['python-wink==0.9.0', 'pubnub==3.8.2']
+REQUIREMENTS = ['python-wink==0.10.0', 'pubnub==3.8.2']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +49,10 @@ CONFIG_SCHEMA = vol.Schema({
     })
 }, extra=vol.ALLOW_EXTRA)
 
+WINK_COMPONENTS = [
+    'binary_sensor', 'sensor', 'light', 'switch', 'lock', 'cover', 'climate'
+]
+
 
 def setup(hass, config):
     """Setup the Wink component."""
@@ -78,19 +82,8 @@ def setup(hass, config):
     SUBSCRIPTION_HANDLER.set_heartbeat(120)
 
     # Load components for the devices in Wink that we support
-    for component_name, func_exists in (
-            ('light', pywink.get_bulbs),
-            ('switch', lambda: pywink.get_switches or pywink.get_sirens or
-             pywink.get_powerstrip_outlets),
-            ('binary_sensor', pywink.get_sensors),
-            ('sensor', lambda: pywink.get_sensors or pywink.get_eggtrays),
-            ('lock', pywink.get_locks),
-            ('cover', pywink.get_shades),
-            ('cover', pywink.get_garage_doors)):
-
-        if func_exists():
-            discovery.load_platform(hass, component_name, DOMAIN, {}, config)
-
+    for component in WINK_COMPONENTS:
+        discovery.load_platform(hass, component, DOMAIN, {}, config)
     return True
 
 
@@ -115,8 +108,13 @@ class WinkDevice(Entity):
                                            error=self._pubnub_error)
 
     def _pubnub_update(self, message, channel):
-        self.wink.pubnub_update(json.loads(message))
-        self.update_ha_state()
+        try:
+            self.wink.pubnub_update(json.loads(message))
+            self.update_ha_state()
+        except (AttributeError, KeyError):
+            error = "Pubnub returned invalid json for " + self.name
+            logging.getLogger(__name__).error(error)
+            self.update_ha_state(True)
 
     def _pubnub_error(self, message):
         _LOGGER.error("Error on pubnub update for " + self.wink.name())
@@ -156,4 +154,5 @@ class WinkDevice(Entity):
     @property
     def _battery_level(self):
         """Return the battery level."""
-        return self.wink.battery_level * 100
+        if self.wink.battery_level is not None:
+            return self.wink.battery_level * 100

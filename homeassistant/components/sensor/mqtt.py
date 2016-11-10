@@ -42,7 +42,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     )])
 
 
-# pylint: disable=too-many-arguments, too-many-instance-attributes
 class MqttSensor(Entity):
     """Representation of a sensor that can be updated using MQTT."""
 
@@ -60,7 +59,7 @@ class MqttSensor(Entity):
             """A new MQTT message has been received."""
             if value_template is not None:
                 payload = value_template.render_with_possible_json_value(
-                    payload)
+                    payload, self._state)
             self._state = payload
             self.update_ha_state()
 

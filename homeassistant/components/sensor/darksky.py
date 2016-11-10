@@ -90,7 +90,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 
-# pylint: disable=too-many-arguments
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the Dark Sky sensor."""
     # Validate the configuration
@@ -114,6 +113,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             longitude=hass.config.longitude,
             units=units,
             interval=config.get(CONF_UPDATE_INTERVAL))
+        forecast_data.update()
         forecast_data.update_currently()
     except ValueError as error:
         _LOGGER.error(error)
@@ -125,10 +125,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     for variable in config[CONF_MONITORED_CONDITIONS]:
         sensors.append(DarkSkySensor(forecast_data, variable, name))
 
-    add_devices(sensors)
+    add_devices(sensors, True)
 
 
-# pylint: disable=too-few-public-methods
 class DarkSkySensor(Entity):
     """Implementation of a Dark Sky sensor."""
 
@@ -140,8 +139,6 @@ class DarkSkySensor(Entity):
         self.type = sensor_type
         self._state = None
         self._unit_of_measurement = None
-
-        self.update()
 
     @property
     def name(self):
@@ -186,7 +183,6 @@ class DarkSkySensor(Entity):
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION,
         }
 
-    # pylint: disable=too-many-branches,too-many-statements
     def update(self):
         """Get the latest data from Dark Sky and updates the states."""
         # Call the API for new forecast data. Each sensor will re-trigger this
@@ -259,7 +255,6 @@ def convert_to_camel(data):
 class DarkSkyData(object):
     """Get the latest data from Darksky."""
 
-    # pylint: disable=too-many-instance-attributes
     def __init__(self, api_key, latitude, longitude, units, interval):
         """Initialize the data object."""
         self._api_key = api_key
@@ -280,8 +275,6 @@ class DarkSkyData(object):
         self.update_minutely = Throttle(interval)(self._update_minutely)
         self.update_hourly = Throttle(interval)(self._update_hourly)
         self.update_daily = Throttle(interval)(self._update_daily)
-
-        self.update()
 
     def _update(self):
         """Get the latest data from Dark Sky."""
